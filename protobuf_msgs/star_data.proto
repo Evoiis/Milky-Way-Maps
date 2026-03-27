@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package mwm_msgs;
+
+message StarData {
+	int64 id = 1;
+	
+	double pos_x = 2;
+	double pos_y = 3;
+	double pos_z = 4;
+	
+	float magnitude = 5;
+	
+	float color = 6;
+
+	optional string name = 7;
+}
+
+
