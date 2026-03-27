@@ -11,7 +11,7 @@ message StarData {
 	
 	float magnitude = 5;
 	
-	float color = 6;
+	float bp_rp = 6;
 
 	optional string name = 7;
 }

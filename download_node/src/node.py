@@ -11,7 +11,7 @@ import star_data_pb2
 
 class DownloadNode():
 
-    def __init__(self, query_wrapper):
+    def __init__(self, query_wrapper, port):
         self.zmq_context = zmq.Context()
         self.socket = zmq_context.socket(zmq.REP)
         self.socket.bind("tcp://*:5555")

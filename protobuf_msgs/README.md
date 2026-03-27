@@ -2,6 +2,8 @@
 
 messages defined in .proto
 
+
+
 ## Compiling for Python
 protoc --proto_path=$SRC_DIR --python_out=$DST_DIR $SRC_DIR/addressbook.proto
 
