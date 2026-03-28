@@ -43,7 +43,7 @@ class GaiaDataProcessor():
         return stars.SerializeToString()
     
     def _match_star_names(self, df: pd.DataFrame):       
-        df["star_name"] = df["original_ext_source_id"].map(self.hip_to_name).fillna("")
+        df["star_name"] = df["original_ext_source_id"].map(self.hip_to_name)
 
     def _calculate_cartesian_coordinates(self, df: pd.DataFrame):
         df["ra_rad"] = np.deg2rad(df["ra"].values)

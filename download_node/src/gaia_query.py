@@ -14,6 +14,7 @@ class GaiaQueryParameters:
             phot_g_mean_mag_upper_bound: int = 15,
             n_stars: int = 500000,
             random_set: bool = True,
+            ranset_mod: int = 50,
             guarantee_rad_velocity: bool = True
         ):
         self.parallax_lower_bound = parallax_lower_bound
@@ -23,6 +24,7 @@ class GaiaQueryParameters:
         self.n_stars = n_stars
         self.random_set = random_set
         self.guarantee_rad_velocity = guarantee_rad_velocity
+        self.ranset_mod = ranset_mod
 
 class GaiaQueryWrapper:
    
@@ -74,7 +76,7 @@ class GaiaQueryWrapper:
             file_name += "_rv"
 
         if self.qp.random_set:
-            file_name += "_ranset"
+            file_name += f"_ranset_mod{self.qp.ranset_mod}"
 
         return file_name + ".csv"
         
@@ -121,7 +123,7 @@ class GaiaQueryWrapper:
             query += " AND g.radial_velocity IS NOT NULL"
 
         if self.qp.random_set:
-            query += " AND MOD(g.random_index, 50) = 0"
+            query += f" AND MOD(g.random_index, {self.qp.ranset_mod}) = 0"
 
         job = Gaia.launch_job(query)
         return job.get_results()
