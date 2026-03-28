@@ -3,9 +3,14 @@ Navigation for the Milky Way
 
 ## System Architecture (WIP)
 
-[Gaia Servers] -> Download Node -> Processing Node -> C++ Vis
+[Gaia Servers] -> Gaia Data Node -> C++ Vis
+
+Motion:
+C++ Vis <-> Motion Processing Node <- Gaia Data Node
 
 
+
+SIMBAD Node?
 
 ## Dependencies
 

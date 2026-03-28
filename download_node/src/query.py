@@ -21,36 +21,7 @@ class GaiaQueryWrapper:
     def _write_to_file(self, df: pd.DataFrame):
         pass
     
-    # TODO: move these calcs to processing node
-    def _calculate_cartesian_coordinates(self, df: pd.DataFrame):
-        df["ra_rad"] = np.deg2rad(df["ra"].values)
-        df["dec_rad"] = np.deg2rad(df["dec"].values)
 
-        parsecs = 1000 / df["parallax"]
-
-        df["x"] = parsecs * np.cos(df["dec_rad"]) * np.cos(df["ra_rad"])
-        df["y"] = parsecs * np.cos(df["dec_rad"]) * np.sin(df["ra_rad"])
-        df["z"] = parsecs * np.sin(df["dec_rad"])
-
-        return df
-
-    def _calculate_rgb_color(self, df: pd.DataFrame):
-        
-        # teff_gspphot, surface temp
-        # ~3000 RED --> 50000 BLUE
-
-        # bp_rp, color
-        # ~ -0.5 Blue hot -> 5.0 red cool
-
-        pass
-
-    def _calculate_star_brightness(self, df: pd.DataFrame):
-        # lum_flame
-        # phot_g_mean_mag
-        pass
-
-    def _calculate_star_size(self, df:pd.DataFrame):
-        pass
 
     def _send_gaia_query(
             self,
@@ -65,8 +36,9 @@ class GaiaQueryWrapper:
         Table with:
         source_id,ra,dec,parallax,pmra,pmdec,pmra_error,pmdec_error,phot_g_mean_mag,bp_rp,ruwe,radial_velocity,teff_gspphot,logg_gspphot,lum_flame,radius_flame
         """
+
         query = f"""
-            SELECT TOP 100000
+            SELECT TOP 500000
                 g.source_id,
                 g.ra, g.dec,
                 g.parallax,
@@ -87,9 +59,10 @@ class GaiaQueryWrapper:
                 g.parallax > {parallax_lower_bound}
                 AND g.parallax_over_error > {parallax_over_error_lower_bound}
                 AND g.ruwe < {ruwe_upper_bound}
-                AND phot_g_mean_mag < {phot_g_mean_mag_upper_bound}
+                AND g.phot_g_mean_mag < {phot_g_mean_mag_upper_bound}
                 AND g.bp_rp IS NOT NULL
-                AND g.radial_velocity IS NOT NULL                                
+                AND MOD(CAST(g.random_index AS BIGINT), 50) = 0
+                AND g.radial_velocity IS NOT NULL
         """
 
         job = Gaia.launch_job(query)

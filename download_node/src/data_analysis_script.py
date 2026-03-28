@@ -2,7 +2,11 @@ from query import GaiaQueryWrapper
 import pandas as pd
 import os
 
-file_name = "100k_analysis_data.csv"
+"""
+Quick script to look at the data we're getting from a gaia query.
+"""
+
+file_name = "analysis_data_rv_500k_ranmod50.csv"
 
 if os.path.exists(file_name):
     df = pd.read_csv(file_name)
@@ -15,3 +19,19 @@ print(f"{df.isna().sum()=}")
 
 print(f"{len(df)=}")
 
+
+from gaia_data_processor import GaiaDataProcessor
+
+gdp = GaiaDataProcessor()
+gdp._calculate_cartesian_coordinates(df)
+gdp._calculate_rgb_color(df)
+
+print(df[["pos_x", "bp_rp"]].corr())
+rgb = df[["color_r", "color_g", "color_b"]].values / 255.0
+
+import matplotlib.pyplot as plt
+plt.scatter(df["pos_x"], df["pos_y"], c=rgb, s=1)
+p = plt.gca()
+p.set_facecolor("black")
+plt.title(file_name)
+plt.show()
