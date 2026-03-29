@@ -1,8 +1,7 @@
-# untitled-gaiadr3-visualization
+# untitled-gaiadr3-visualization (WIP)
 
 
-
-## System Architecture (WIP)
+## System Architecture 
 
 [Gaia Servers] -> Gaia Data Node -> C++ Vis
 
@@ -33,6 +32,10 @@ sudo apt install libzmq3-dev
 
 ## Python Notes
 
+
+## Protobuf Notes
+
+[protobuf_msgs](./protobuf_msgs/README.md)
 
 ## Acknowledgements
 

@@ -3,12 +3,15 @@
 messages defined in .proto
 
 
+## Python
+Compiling:
+`protoc star_data.proto --python_out=star_data_pb2/`
 
-## Compiling for Python
-protoc --proto_path=$SRC_DIR --python_out=$DST_DIR $SRC_DIR/addressbook.proto
+Install python package:
+`pip install -e .`
 
-protoc star_data.proto --python_out=.
+-e for editable, if developing
+
 
 ## Compiling for C++
-protoc -I=$SRC_DIR --cpp_out=$DST_DIR $SRC_DIR/addressbook.proto
-protoc star_data.proto --cpp_out=.
+Compiled using Cmake in visualization/CmakeLists.txt

@@ -1,6 +1,10 @@
 # MWM Download Node
 
 
+# Testing
+
+run `pytest` in this folder
+
 
 ## Data Labels and Descriptions
 

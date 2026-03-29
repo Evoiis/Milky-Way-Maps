@@ -4,9 +4,9 @@ from src.node import DownloadNode
 
 def main():
     gqw = GaiaQueryWrapper(GaiaQueryParameters())
-    gdp = GaiaDataProcessor("data/") # TODO
+    gdp = GaiaDataProcessor("data/") # TODO data folder path launch param
 
-    dnode = DownloadNode(gqw, gdp, 5656)
+    dnode = DownloadNode(gqw, gdp, 5656) # TODO port launch param
 
     dnode.run_node()
 

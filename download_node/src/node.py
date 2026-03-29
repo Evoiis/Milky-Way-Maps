@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class DownloadNode():
 
-    def __init__(self, download_wrapper, data_processor, server_port: int):
+    def __init__(self, download_wrapper, data_processor, server_port: int, preload_data: bool = False):
         """
         Input:
         - download_wrapper/data_processor, inject classes to get/process data with
@@ -27,8 +27,16 @@ class DownloadNode():
 
         self.stop = False
 
+        if preload_data:
+            self.get_and_process_data()
+
     def _shutdown(self):
         pass
+
+    def get_and_process_data(self):
+        if self.data is None:
+            self.data = self.data_processor.process_data(self.download_wrapper.get_data())
+        return self.data
 
     def run_node(self):
         try:
@@ -57,8 +65,6 @@ class DownloadNode():
 
             print(f"Received request at {data_req.timestamp} from {data_req.node_name}")
 
-            if self.data is None:
-                self.data = self.data_processor.process_data(self.download_wrapper.get_data())
+            data = self.get_and_process_data()
             
-            self.socket.send(self.data)
-
+            self.socket.send(data)
