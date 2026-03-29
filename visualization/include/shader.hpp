@@ -1,5 +1,5 @@
-#ifndef SHADER_H
-#define SHADER_H
+#ifndef SHADER_HPP
+#define SHADER_HPP
 
 #include <GL/glew.h> 
 
@@ -10,7 +10,7 @@
 
 class Shader{
 public:
-    unsigned int ID;
+    unsigned int m_ID;
     Shader(const char* vertexPath, const char* fragmentPath);
     
     void use();

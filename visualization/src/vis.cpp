@@ -267,14 +267,14 @@ int main(){
     shader_program.use();
     // Init Point Scale - controls star size
     pointScale = 2.0f;  // Parameter
-    glUniform1f(glGetUniformLocation(shader_program.ID, "uPointScale"), height * pointScale);
+    glUniform1f(glGetUniformLocation(shader_program.m_ID, "uPointScale"), height * pointScale);
 
     // Init Bright Shader
     Shader brightness_shader(SHADER_DIR "screen.vs", SHADER_DIR "bright.fs");
     brightness_shader.use();
 
     float threshold = 0.3f; // Parameter or controlled by star data
-    glUniform1f(glGetUniformLocation(brightness_shader.ID, "threshold"), threshold);
+    glUniform1f(glGetUniformLocation(brightness_shader.m_ID, "threshold"), threshold);
 
     // Init Blur Shader
     Shader blur_shader(SHADER_DIR "screen.vs", SHADER_DIR "blur.fs");
@@ -284,11 +284,11 @@ int main(){
     Shader combine_shader(SHADER_DIR "screen.vs", SHADER_DIR "combine.fs");
     combine_shader.use();
     // Which texture unit to sample from
-    glUniform1i(glGetUniformLocation(combine_shader.ID, "scene"), 0);
-    glUniform1i(glGetUniformLocation(combine_shader.ID, "bloomBlur"), 1);
+    glUniform1i(glGetUniformLocation(combine_shader.m_ID, "scene"), 0);
+    glUniform1i(glGetUniformLocation(combine_shader.m_ID, "bloomBlur"), 1);
 
     float bloomStrength = 1.0f; // Parameter or controlled by star data
-    glUniform1f(glGetUniformLocation(combine_shader.ID, "bloomStrength"), bloomStrength);
+    glUniform1f(glGetUniformLocation(combine_shader.m_ID, "bloomStrength"), bloomStrength);
 
     // Must match stars in stars data below
     std::vector<StarMeta> star_meta_data = {
@@ -384,7 +384,7 @@ int main(){
     projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.05f, 500.0f);
 
     glm::mat4 mvp_composite = projection * view;
-    int compositeLoc = glGetUniformLocation(shader_program.ID, "mvp_composite");
+    int compositeLoc = glGetUniformLocation(shader_program.m_ID, "mvp_composite");
     glUniformMatrix4fv(compositeLoc, 1, GL_FALSE, glm::value_ptr(mvp_composite));
 
     // Depth On
@@ -467,7 +467,7 @@ int main(){
 
         brightness_shader.use();
         glBindVertexArray(quadVAO);
-        glUniform1i(glGetUniformLocation(brightness_shader.ID, "screenTexture"), 0);
+        glUniform1i(glGetUniformLocation(brightness_shader.m_ID, "screenTexture"), 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -476,7 +476,7 @@ int main(){
         bool horizontal = true;
         blur_shader.use();
 
-        glUniform1i(glGetUniformLocation(blur_shader.ID, "image"), 0);
+        glUniform1i(glGetUniformLocation(blur_shader.m_ID, "image"), 0);
         glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[0]);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[1]);
@@ -486,7 +486,7 @@ int main(){
         // After 10 passes the result is in blurBuffer[!horizontal].
         for(int i = 0; i < (int)blurAmount; i++){
             glBindFramebuffer(GL_FRAMEBUFFER, blurFBO[horizontal]);
-            glUniform1i(glGetUniformLocation(blur_shader.ID, "horizontal"), horizontal);
+            glUniform1i(glGetUniformLocation(blur_shader.m_ID, "horizontal"), horizontal);
             glBindTexture(GL_TEXTURE_2D, i == 0 ? brightBuffer : blurBuffer[!horizontal]);
             glBindVertexArray(quadVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -522,11 +522,11 @@ int main(){
 
         ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
         brightness_shader.use();
-        glUniform1f(glGetUniformLocation(brightness_shader.ID, "threshold"), threshold);
+        glUniform1f(glGetUniformLocation(brightness_shader.m_ID, "threshold"), threshold);
 
         ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.0f, 3.0f);
         combine_shader.use();
-        glUniform1f(glGetUniformLocation(combine_shader.ID, "bloomStrength"), bloomStrength);
+        glUniform1f(glGetUniformLocation(combine_shader.m_ID, "bloomStrength"), bloomStrength);
 
         // Draw Star Labels
         // GetBackgroundDrawLists, Draws behind GUI, but in front of scene        
