@@ -41,7 +41,7 @@ def make_processed_df() -> pd.DataFrame:
         color_b=[255, 0],
         brightness=[0.4, 0.7],
         size=[2.5, 6.0],
-        name=["", "Achernar"],
+        star_name=["", "Achernar"],
     ))
 
 
@@ -58,9 +58,7 @@ def deserialize(blob: bytes) -> star_data_pb2.Stars:
 # ---------------------------------------------------------------------------
 # _serialize_into_msg
 # ---------------------------------------------------------------------------
-
 class TestSerializeIntoMsg:
-
     def test_returns_bytes(self):
         df = make_processed_df()
         result = proc()._serialize_into_msg(df)
@@ -80,28 +78,28 @@ class TestSerializeIntoMsg:
     def test_star_ids_match(self):
         df = make_processed_df()
         stars = deserialize(proc()._serialize_into_msg(df))
-        assert stars.stars[0].id == 1001
-        assert stars.stars[1].id == 1002
+        assert stars.stars[1001].id == 1001
+        assert stars.stars[1002].id == 1002
 
     def test_positions_match(self):
         df = make_processed_df()
         stars = deserialize(proc()._serialize_into_msg(df))
-        assert stars.stars[0].pos_x == pytest.approx(-0.5, abs=1e-6)
-        assert stars.stars[0].pos_y == pytest.approx(0.3, abs=1e-6)
-        assert stars.stars[0].pos_z == pytest.approx(0.1, abs=1e-6)
+        assert stars.stars[1001].pos_x == pytest.approx(-0.5, abs=1e-6)
+        assert stars.stars[1001].pos_y == pytest.approx(0.3, abs=1e-6)
+        assert stars.stars[1001].pos_z == pytest.approx(0.1, abs=1e-6)
 
     def test_colors_match(self):
         df = make_processed_df()
         stars = deserialize(proc()._serialize_into_msg(df))
-        assert stars.stars[0].color_r == 120
-        assert stars.stars[0].color_g == 200
-        assert stars.stars[0].color_b == 255
+        assert stars.stars[1001].color_r == 120
+        assert stars.stars[1001].color_g == 200
+        assert stars.stars[1001].color_b == 255
 
     def test_brightness_and_size_match(self):
         df = make_processed_df()
         stars = deserialize(proc()._serialize_into_msg(df))
-        assert stars.stars[0].brightness == pytest.approx(0.4, abs=1e-5)
-        assert stars.stars[0].size == pytest.approx(2.5, abs=1e-5)
+        assert stars.stars[1001].brightness == pytest.approx(0.4, abs=1e-5)
+        assert stars.stars[1001].size == pytest.approx(2.5, abs=1e-5)
 
     def test_timestamp_is_set(self):
         df = make_processed_df()
@@ -115,14 +113,14 @@ class TestSerializeIntoMsg:
         after = int(time.time())
         assert before <= stars.timestamp <= after
 
-    def test_name_field_not_set_by_default(self):
-        """Optional name field should be unset when not provided."""
+    def test_name_field_set_when_provided(self):
         df = make_processed_df()
         stars = deserialize(proc()._serialize_into_msg(df))
-        assert not stars.stars[0].HasField("name")
+        assert stars.stars[1002].HasField("name")
+        assert stars.stars[1002].name == "Achernar"
 
     def test_empty_dataframe_returns_valid_message(self):
-        df = make_processed_df().iloc[0:0]  # empty, same columns
+        df = make_processed_df().iloc[0:0]
         blob = proc()._serialize_into_msg(df)
         stars = deserialize(blob)
         assert len(stars.stars) == 0
@@ -131,8 +129,7 @@ class TestSerializeIntoMsg:
         df = make_processed_df().iloc[[0]]
         stars = deserialize(proc()._serialize_into_msg(df))
         assert len(stars.stars) == 1
-        assert stars.stars[0].id == 1001
-
+        assert stars.stars[1001].id == 1001
 
 # ---------------------------------------------------------------------------
 # process_data (integration)
@@ -159,37 +156,37 @@ class TestProcessData:
     def test_ids_preserved(self):
         df = make_raw_df()
         stars = deserialize(proc().process_data(df))
-        ids = [s.id for s in stars.stars]
+        ids = [s for s in stars.stars]
         assert 1001 in ids
         assert 1002 in ids
 
     def test_positions_are_finite(self):
         df = make_raw_df()
         stars = deserialize(proc().process_data(df))
-        for star in stars.stars:
-            assert np.isfinite(star.pos_x)
-            assert np.isfinite(star.pos_y)
-            assert np.isfinite(star.pos_z)
+        for star_id in stars.stars:
+            assert np.isfinite(stars.stars[star_id].pos_x)
+            assert np.isfinite(stars.stars[star_id].pos_y)
+            assert np.isfinite(stars.stars[star_id].pos_z)
 
     def test_colors_in_valid_range(self):
         df = make_raw_df()
         stars = deserialize(proc().process_data(df))
-        for star in stars.stars:
-            assert 0 <= star.color_r <= 255
-            assert 0 <= star.color_g <= 255
-            assert 0 <= star.color_b <= 255
+        for star_id in stars.stars:
+            assert 0 <= stars.stars[star_id].color_r <= 255
+            assert 0 <= stars.stars[star_id].color_g <= 255
+            assert 0 <= stars.stars[star_id].color_b <= 255
 
     def test_brightness_in_valid_range(self):
         df = make_raw_df()
         stars = deserialize(proc().process_data(df))
-        for star in stars.stars:
-            assert 0.0 <= star.brightness <= 1.0
+        for star_id in stars.stars:
+            assert 0.0 <= stars.stars[star_id].brightness <= 1.0
 
     def test_size_positive(self):
         df = make_raw_df()
         stars = deserialize(proc().process_data(df))
-        for star in stars.stars:
-            assert star.size > 0
+        for star_id in stars.stars:
+            assert stars.stars[star_id].size > 0
 
     def test_pipeline_calls_all_stages(self):
         """Verify all four compute stages are called."""
@@ -200,7 +197,7 @@ class TestProcessData:
         p._calculate_star_brightness       = lambda df: calls.append("brightness")
         p._calculate_star_size             = lambda df: calls.append("size")
         p._match_star_names                = lambda df: calls.append("match")
-        p._serialize_into_msg              = lambda df: calls.append("serialize") or b""
+        p._serialize_into_msg              = lambda df: calls.append("serialize")
 
         p.process_data(make_raw_df())
         assert calls == ["cartesian", "color", "brightness", "size", "match", "serialize"]

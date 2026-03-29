@@ -15,14 +15,14 @@ message StarData {
 	float brightness = 5;
     float size = 6;
 	
-	int32 color_r = 9;
-	int32 color_g = 10;
-	int32 color_b = 11;
+	int32 color_r = 8;
+	int32 color_g = 9;
+	int32 color_b = 10;
 }
 
 message Stars {
-    repeated StarData stars = 1;
-    int32 timestamp = 2;
+    int32 timestamp = 1;
+    map<int64, StarData> stars = 2;
 }
 
 message DataRequest {

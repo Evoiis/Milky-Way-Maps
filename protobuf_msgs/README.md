@@ -5,7 +5,7 @@ messages defined in .proto
 
 ## Python
 Compiling:
-`protoc star_data.proto --python_out=star_data_pb2/`
+`protoc star_data.proto --python_out=.`
 
 Install python package:
 `pip install -e .`

@@ -32,7 +32,7 @@ class GaiaDataProcessor():
         df[["color_r", "color_g", "color_b"]] = df[["color_r", "color_g", "color_b"]].astype(int)
 
         for row in df.itertuples(index=False):
-            star = stars.stars.add()
+            star = stars.stars[row.source_id]
             star.id = row.source_id
             star.pos_x = row.pos_x
             star.pos_y = row.pos_y
@@ -42,7 +42,7 @@ class GaiaDataProcessor():
             star.color_b = row.color_b
             star.brightness = row.brightness
             star.size = row.size
-            if "star_name" in row:
+            if hasattr(row, "star_name"):
                 star.name = row.star_name
 
         return stars.SerializeToString()
