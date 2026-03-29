@@ -8,7 +8,6 @@ Quick script to plot the data we're getting from a gaia query.
 
 gqw = GaiaQueryWrapper(
     GaiaQueryParameters(
-        # n_stars_per_batch=150000,
         n_stars_per_batch=1,
         random_set_modulo=50
     )
@@ -16,8 +15,7 @@ gqw = GaiaQueryWrapper(
 
 start = time()
 
-df = gqw.get_batches(8)
-# df = gqw.get_data()
+df = gqw.get_data(8)
 
 print("Query time taken: ", time() - start)
 

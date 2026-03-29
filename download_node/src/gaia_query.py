@@ -6,8 +6,6 @@ import pandas as pd
 from astroquery.gaia import Gaia
 from astropy.table import Table
 
-logger = logging.getLogger(__name__)
-
 class GaiaQueryParameters:
 
     def __init__(
@@ -54,11 +52,12 @@ class GaiaQueryWrapper:
         self._wr_to_file = wr_to_file
         self.qp = query_parameters
         self.file_name = file_name
+        self.logger = logging.getLogger(__name__)
 
     def get_data(self, number_of_batches):
-        return self.get_batches(number_of_batches)
+        return self._get_batches(number_of_batches)
     
-    def get_batches(self, number_of_batches: int):
+    def _get_batches(self, number_of_batches: int):
         """
         Makes multiple queries to Gaia Archives to get a larger dataset.
         Gaia Archives returns around 250000 stars maximum per query
@@ -72,7 +71,7 @@ class GaiaQueryWrapper:
         
         file_read = self._read_from_file(number_of_batches)
         if file_read is not None:
-            logging.info("Found existing data locally.")
+            self.logger.info("Found existing data locally.")
             return file_read
 
         df = pd.DataFrame()

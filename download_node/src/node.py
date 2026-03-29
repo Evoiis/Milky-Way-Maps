@@ -3,8 +3,6 @@ import logging
 
 import star_data_pb2
 
-logger = logging.getLogger(__name__)
-
 class DownloadNode():
 
     def __init__(self, download_wrapper, data_processor, server_port: int, preload_data: bool = False, n_batches: int = 1):
@@ -14,7 +12,8 @@ class DownloadNode():
         - server_port, port to bind the server socket to
         - client_target_port, port to send messages to
         """
-        print(f"Initializing Download Node, {server_port=}")
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(f"Initializing Download Node, {server_port=}")
 
         self.zmq_context = zmq.Context()
         self.socket = self.zmq_context.socket(zmq.REP)
@@ -45,14 +44,14 @@ class DownloadNode():
         except KeyboardInterrupt:
             pass
             
-        print("Download Node: Shutting down")
+        self.logger.info("Download Node: Shutting down")
         self._shutdown()
     
     def stop_loop(self):
         self.stop = True
 
     def _loop(self):
-        print("Download Node: Loop Starting")
+        self.logger.info("Download Node: Loop Starting")
         while not self.stop:
             try:
                 # Wait for requests from other nodes
@@ -64,7 +63,7 @@ class DownloadNode():
             data_req = star_data_pb2.DataRequest()
             data_req.ParseFromString(received)
 
-            print(f"Received request at {data_req.timestamp} from {data_req.node_name}")
+            self.logger.info(f"Received request at {data_req.timestamp} from {data_req.node_name}")
 
             data = self.get_and_process_data()
             

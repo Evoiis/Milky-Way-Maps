@@ -5,18 +5,18 @@ import logging
 
 import star_data_pb2
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 class GaiaDataProcessor():
 
     def __init__(self, data_folder_path: str):
         iau_data = pd.read_csv(data_folder_path + "iau_stars.csv")
         iau_data = iau_data[iau_data['HIP'].notna()]
+        
         self.hip_to_name = dict(zip(iau_data["HIP"].dropna().astype(int), iau_data["Proper Names"]))
+        self.logger = logging.getLogger(__name__)
 
     def process_data(self, df: pd.DataFrame):
-        logging.info("Processing Gaia Data")
+        self.logger.info("Processing Gaia Data")
         self._calculate_cartesian_coordinates(df)
         self._calculate_rgb_color(df)
         self._calculate_star_brightness(df)
