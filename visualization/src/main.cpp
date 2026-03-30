@@ -9,8 +9,9 @@ int main() {
     int port = 5656; // Launch Param?
 
     Node node{shared_stars, port};
-
     node.request_gaia_data();
+
+    
 
     return 0;
 }
