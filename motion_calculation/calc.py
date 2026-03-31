@@ -1,11 +1,13 @@
 import numpy as np
+
 from galpy.orbit import Orbit
 from galpy.potential import MWPotential2014
 
 def integrate_orbits(
     ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
-    t_max_gyr=1.0,
-    n_timesteps=100,
+    t_start_gyr,
+    t_end_gyr,
+    n_timesteps=100,    
 ):
     # dist(kpc) = sqrt(x^2+y^2+z^2) / 1000
     # vxvv: [RA(deg), Dec(deg), dist(kpc), pmRA(mas/yr), pmDec(mas/yr), Vlos(km/s)]
@@ -13,11 +15,9 @@ def integrate_orbits(
 
     o = Orbit(vxvv, radec=True, ro=8., vo=220.)
 
-    t_forward  = np.linspace(0,  t_max_gyr, n_timesteps)
-    t_backward = np.linspace(0, -t_max_gyr, n_timesteps)
+    time_range  = np.linspace(t_start_gyr, t_end_gyr, n_timesteps)
 
-    o.integrate(t_forward,  MWPotential2014, method='dop853_c')
-    o.integrate(t_backward, MWPotential2014, method='dop853_c')
+    o.integrate(time_range,  MWPotential2014, method='dop853_c')
 
     times_gyr = o.t
 
@@ -164,10 +164,10 @@ def validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc):
 
     print("\n=== Validation Complete ===")
 
-def main():
-    np.random.seed(42)
-    n_stars = 10
+import time
+from sys import getsizeof
 
+def speed_test(n_stars, output_string, t_start, t_end):
     # Fake star data roughly resembling nearby Gaia stars
     ra               = np.random.uniform(0, 360, n_stars)
     dec              = np.random.uniform(-90, 90, n_stars)
@@ -177,21 +177,78 @@ def main():
     radial_velocity  = np.random.uniform(-50, 50, n_stars)
 
     print("Integrating orbits...")
+    start = time.time()
     times_gyr, x, y, z, o = integrate_orbits(
         ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
-        t_max_gyr=1.0,
+        t_start_gyr=t_start,
+        t_end_gyr=t_end,
         n_timesteps=100,
     )
-
-    print(x)
-
+    print(f"Done, time taken: {time.time() - start}")
+    print(output_string)
     print(f"Trajectory shape: {x.shape}")  # expect (n_stars, 199)
-    print(f"Time range: {times_gyr[0]:.2f} -> {times_gyr[-1]:.2f} Gyr")
+    print(f"{getsizeof(x)=}")
+    print("\n\n")
+
+
+def main():
+    np.random.seed(42)
+    # n_stars = 1000000
+
+    # # Fake star data roughly resembling nearby Gaia stars
+    # ra               = np.random.uniform(0, 360, n_stars)
+    # dec              = np.random.uniform(-90, 90, n_stars)
+    # dist_kpc         = np.random.uniform(0.1, 3.0, n_stars)
+    # pmra             = np.random.uniform(-10, 10, n_stars)
+    # pmdec            = np.random.uniform(-10, 10, n_stars)
+    # radial_velocity  = np.random.uniform(-50, 50, n_stars)
+
+    # print("Integrating orbits...")
+    # start = time.time()
+    # times_gyr, x, y, z, o = integrate_orbits(
+    #     ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
+    #     t_start_gyr=0,
+    #     t_end_gyr=1,
+    #     n_timesteps=60,
+    # )
+    # print(f"Done, time taken: {time.time() - start}")
+
+    n_stars = 1000000
+    t_start = 0
+    t_end = 1
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    t_end = 0.1
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    t_end = 0.01
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    t_end = 1
+    n_stars = 500000
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    n_stars = 750000
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    n_stars = 250000
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+    
+    # n_stars = 5000000
+    # speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
+    n_stars = 1
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+    speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
+
 
     # Test position lookup at a few times
-    for t in [-0.5, 0.0, 0.5]:
-        positions = get_position_at_time(x, y, z, times_gyr, t)
-        print(f"t={t:.1f} Gyr | star 0: x={positions[0,0]:.3f} y={positions[0,1]:.3f} z={positions[0,2]:.3f} kpc")
+    # for t in [-0.5, 0.0, 0.5]:
+    #     positions = get_position_at_time(x, y, z, times_gyr, t)
+    #     print(f"t={t:.1f} Gyr | star 0: x={positions[0,0]:.3f} y={positions[0,1]:.3f} z={positions[0,2]:.3f} kpc")
 
     # Test save/load
     # source_ids = np.arange(n_stars, dtype=np.int64)
@@ -200,7 +257,7 @@ def main():
     # print(f"\nSaved and reloaded OK. Keys: {list(data.keys())}")
     # print(f"Loaded x shape: {data['x'].shape}")
 
-    validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc)
+    # validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc)
 
 
 if __name__ == "__main__":
