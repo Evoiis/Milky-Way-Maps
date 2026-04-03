@@ -57,7 +57,7 @@ Visualization::Visualization(
 
 
     // Init vp matrices
-    m_projection_matrix = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.05f, 1000.0f);   // TODO Param
+    m_projection_matrix = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.05f, 10000.0f);   // TODO Param
     m_vp_matrix = m_projection_matrix * m_camera.get_view_matrix();
     m_point_sprite_shader->setMatrix4("mvp_composite", m_vp_matrix);
 
@@ -79,12 +79,14 @@ void Visualization::load_star_data(){
     while(!m_shared_stars->check_if_updated()){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
+    
     auto data = m_shared_stars->try_get_ptr();
-
+    
     if(!data){
         throw std::runtime_error("Expected star data but received nullptr!");
     }
+    
+    m_star_positions = data->star_positions;
     
     glBindVertexArray(m_stars_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_star_positions_VBO);
@@ -116,7 +118,6 @@ void Visualization::load_star_data(){
     glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
     glEnableVertexAttribArray(4);
     
-    m_star_positions = data->star_positions;
 }
 
 void Visualization::update_position_data(){
@@ -190,6 +191,7 @@ void Visualization::render_loop(){
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
+        // std::cout << select_stars_around_camera()
     }
 
     std::cout << "Terminating Visualization" << std::endl;

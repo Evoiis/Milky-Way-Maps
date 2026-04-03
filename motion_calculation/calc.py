@@ -60,7 +60,7 @@ def get_position_at_time(x, y, z, times_gyr, t_gyr):
     pz = z[:, idx-1] + alpha * (z[:, idx] - z[:, idx-1])
     return np.stack([px, py, pz], axis=1)
 
-
+# TODO: move to tests
 def validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc):
     print("=== Orbit Validation ===\n")
 
@@ -167,8 +167,33 @@ def validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc):
 import time
 from sys import getsizeof
 
-def speed_test(n_stars, output_string, t_start, t_end):
+def speed_test(ra, dec, dist_kpc, pmra, pmdec, radial_velocity, output_string, t_start, t_end, n_timesteps):
     # Fake star data roughly resembling nearby Gaia stars
+    
+    # n_timesteps = 4
+    # print("Integrating orbits...")
+    start = time.time()
+    times_gyr, x, y, z, o = integrate_orbits(
+        ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
+        t_start_gyr=t_start,
+        t_end_gyr=t_end + t_start,
+        n_timesteps=n_timesteps,
+    )
+    time_taken = time.time() - start
+    # print(f"{n_timesteps=}")
+    # print(f"Done, time taken: {time_taken}")
+    # print(output_string)
+    # print(f"Trajectory shape: {x.shape}")  # expect (n_stars, 199)
+    # print(f"{3*getsizeof(x)=}")
+    # print("\n\n")
+
+    return time_taken
+
+def benchmark(n_timesteps):
+    n_stars = 2000000
+    t_start = 0
+    n_samples = 5
+
     ra               = np.random.uniform(0, 360, n_stars)
     dec              = np.random.uniform(-90, 90, n_stars)
     dist_kpc         = np.random.uniform(0.1, 3.0, n_stars)
@@ -176,49 +201,25 @@ def speed_test(n_stars, output_string, t_start, t_end):
     pmdec            = np.random.uniform(-10, 10, n_stars)
     radial_velocity  = np.random.uniform(-50, 50, n_stars)
 
-    print("Integrating orbits...")
-    start = time.time()
-    times_gyr, x, y, z, o = integrate_orbits(
-        ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
-        t_start_gyr=t_start,
-        t_end_gyr=t_end,
-        n_timesteps=10,
-    )
-    print(f"Done, time taken: {time.time() - start}")
-    print(output_string)
-    print(f"Trajectory shape: {x.shape}")  # expect (n_stars, 199)
-    print(f"{getsizeof(x)=}")
-    print("\n\n")
+    result_strings = []
+    t_end = 0.000000001
+    
+    while t_end <= 1:
+        times = []
+        for _ in range(n_samples):
+            times.append(speed_test(ra, dec, dist_kpc, pmra, pmdec, radial_velocity, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end, n_timesteps))
 
+        result_strings.append(f"Average time_taken({t_end=}): {sum(times) / n_samples}")
+        t_end *= 10
+    
+    for s in result_strings:
+        print(s)
 
 def main():
-    np.random.seed(42)
-    # n_stars = 1000000
 
-    # # Fake star data roughly resembling nearby Gaia stars
-    # ra               = np.random.uniform(0, 360, n_stars)
-    # dec              = np.random.uniform(-90, 90, n_stars)
-    # dist_kpc         = np.random.uniform(0.1, 3.0, n_stars)
-    # pmra             = np.random.uniform(-10, 10, n_stars)
-    # pmdec            = np.random.uniform(-10, 10, n_stars)
-    # radial_velocity  = np.random.uniform(-50, 50, n_stars)
-
-    # print("Integrating orbits...")
-    # start = time.time()
-    # times_gyr, x, y, z, o = integrate_orbits(
-    #     ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
-    #     t_start_gyr=0,
-    #     t_end_gyr=1,
-    #     n_timesteps=60,
-    # )
-    # print(f"Done, time taken: {time.time() - start}")
-
-    n_stars = 50000
-    t_start = 0
-    t_end = 1
-    # speed_test(n_stars, f"{n_stars=}, {t_start=}, {t_end=}", t_start, t_end)
-    
-
+    benchmark(8)
+    benchmark(16)
+    benchmark(32)
 
 
     # Test position lookup at a few times
