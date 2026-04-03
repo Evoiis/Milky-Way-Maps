@@ -2,6 +2,7 @@ import numpy as np
 
 from galpy.orbit import Orbit
 from galpy.potential import MWPotential2014
+import time
 
 def integrate_orbits(
     ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
@@ -9,22 +10,26 @@ def integrate_orbits(
     t_end_gyr,
     n_timesteps=100,    
 ):
+    
+    now = time.time()
     # dist(kpc) = sqrt(x^2+y^2+z^2) / 1000
     # vxvv: [RA(deg), Dec(deg), dist(kpc), pmRA(mas/yr), pmDec(mas/yr), Vlos(km/s)]
     vxvv = np.column_stack([ra, dec, dist_kpc, pmra, pmdec, radial_velocity])
 
     o = Orbit(vxvv, radec=True, ro=8., vo=220.)
+    print(f"A: Curr: {time.time() - now}")
 
     time_range  = np.linspace(t_start_gyr, t_end_gyr, n_timesteps)
 
     o.integrate(time_range,  MWPotential2014, method='dop853_c')
-
+    print(f"B: Curr: {time.time() - now}")
     times_gyr = o.t
 
     # o.x(), o.y(), o.z() return (n_stars, n_timesteps) after batch integration
     x = o.x(times_gyr)
     y = o.y(times_gyr)
     z = o.z(times_gyr)
+    print(f"C: Curr: {time.time() - now}")
 
     # Convert galactocentric -> heliocentric
     # Sun is at (-ro, 0, 0) in galpy's convention
@@ -35,6 +40,7 @@ def integrate_orbits(
     x = x - sun_x
     y = y - sun_y
     z = z - sun_z
+    print(f"D: Curr: {time.time() - now}")
 
     return times_gyr, x, y, z, o
 
@@ -164,14 +170,14 @@ def validate_orbits(o, x, y, z, times_gyr, ra, dec, dist_kpc):
 
     print("\n=== Validation Complete ===")
 
-import time
+
 from sys import getsizeof
 
 def speed_test(ra, dec, dist_kpc, pmra, pmdec, radial_velocity, output_string, t_start, t_end, n_timesteps):
     # Fake star data roughly resembling nearby Gaia stars
     
     # n_timesteps = 4
-    # print("Integrating orbits...")
+    print("Integrating orbits...")
     start = time.time()
     times_gyr, x, y, z, o = integrate_orbits(
         ra, dec, dist_kpc, pmra, pmdec, radial_velocity,
@@ -180,12 +186,12 @@ def speed_test(ra, dec, dist_kpc, pmra, pmdec, radial_velocity, output_string, t
         n_timesteps=n_timesteps,
     )
     time_taken = time.time() - start
-    # print(f"{n_timesteps=}")
-    # print(f"Done, time taken: {time_taken}")
-    # print(output_string)
-    # print(f"Trajectory shape: {x.shape}")  # expect (n_stars, 199)
-    # print(f"{3*getsizeof(x)=}")
-    # print("\n\n")
+    print(f"{n_timesteps=}")
+    print(f"Done, time taken: {time_taken}")
+    print(output_string)
+    print(f"Trajectory shape: {x.shape}")  # expect (n_stars, 199)
+    print(f"{3*getsizeof(x)=}")
+    print("\n\n")
 
     return time_taken
 
@@ -217,9 +223,12 @@ def benchmark(n_timesteps):
 
 def main():
 
+    print("8")
     benchmark(8)
-    benchmark(16)
-    benchmark(32)
+    # print("\n\n, 16")
+    # benchmark(16)
+    # print("\n\n, 32")
+    # benchmark(32)
 
 
     # Test position lookup at a few times
