@@ -83,21 +83,30 @@ def generate_training_set(n_stars, n_timesteps=100):
 
     return np.column_stack([x0, y0, z0, vx0, vy0, vz0, t_col, x_out, y_out, z_out])
 
+def write_data(n_stars, batch_size, data_folder):
+    if not os.path.exists(data_folder):
+        os.mkdir(data_folder)
 
-def main():
-
-    if len(os.listdir("./data")) > 0:
-        print("Detected files in ./data, not generating data to prevent overwrite.")
+    if len(os.listdir(data_folder)) > 0:
+        print(f"Detected files in {data_folder}, not generating data to prevent overwrite.")
         return
-
-    n_stars = 1_000_000
-    batch_size = 10000
     
     for i in range(math.ceil(n_stars / batch_size)):
         print(f"Generating part {i}")
         data = generate_training_set(batch_size)
     
-        np.save(f"./data/orbit_train_part{i:04d}.npy", data)
+        np.save(f"{data_folder}/orbit_train_part{i:04d}.npy", data)
+
+def main():
+    write_data(1000000, 10000, "training_data_2")
+    # write_data(100000, 10000, "validation_data")
+    # write_data(100000, 10000, "test_data")
+
+    # data = generate_training_set(5,2)
+    # print(data)
+    # np.savetxt("short.csv", data, delimiter=",")
+
+    
 
 if __name__ == "__main__":
     main()

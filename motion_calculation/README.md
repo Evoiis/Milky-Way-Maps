@@ -19,3 +19,11 @@ sudo apt-get -y install cuda-toolkit-13-0
 ```
 
 
+### Tmp Notes
+Trained first orbit_mlp.pt model on training_data.
+1000000 stars. 100 epochs.
+
+~75 parsecs of error.
+One shot predict, cost 0.5 sec. (Should also test batch predict.)
+
+Not the perfect result but still lots of things to try.
