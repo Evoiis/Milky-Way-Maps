@@ -36,3 +36,33 @@ Far from the perfect result but still lots of things to try.
     - Time --> Fourier features mapping
     - add r0 = sqrt(x0,y0)
 - Edit hidden layers
+
+
+Iterations
+1:
+- 1 Million stars, 7 features
+~ 75 parsecs err
+2:
+- 2 Million stars, 7 featres
+~ 60 parsecs err
+
+3:
+- Swapped from relu to silu
+~ 21 parsecs error
+
+4:
+- Added r0 and time fourier features
+- Trained on 1/2 Training data (Had issues with memory)
+~59 parsecs error
+
+5:
+- Trained on 3/4 of training_data + training_data_2
+~ 40 parsecs error
+
+Stopped early because it started plateauing at 40.
+(also forgot to swap the learning rate when swapping data sets)
+    - no longer a problem because I added load_checkpoint
+
+6:
+- Reducing Input Time space from -3,3 to -1,1
+

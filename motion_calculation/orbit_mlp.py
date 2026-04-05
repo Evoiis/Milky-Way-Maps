@@ -408,11 +408,6 @@ def main():
     test_set = OrbitDataset(TEST_DATA_PATH, norm_stats)
     val_set = OrbitDataset(VAL_DATA_PATH, norm_stats)
 
-    # Necessary if datasets are too large for gpu vram
-    # train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,  num_workers=12, pin_memory=True)
-    # val_loader   = DataLoader(val_set,   batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
-    # test_loader  = DataLoader(test_set,  batch_size=BATCH_SIZE, shuffle=False, num_workers=12, pin_memory=True)
-
     # move full dataset to GPU
     train_X = train_set.X.to(DEVICE)
     train_y = train_set.y.to(DEVICE)
@@ -423,16 +418,14 @@ def main():
     test_X = test_set.X.to(DEVICE)
     test_y = test_set.y.to(DEVICE)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    # learning rate scheduler — halves LR if val loss stops improving for 5 epochs
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=15, min_lr=1e-6
-    )
-
     # --- model ---
     if os.path.exists(MODEL_PATH):
         print("Loading Pre-trained model")
         model, _ = load_model()
+        optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.5, patience=15, min_lr=1e-6
+        )
         print(load_checkpoint(
             model,
             optimizer,
@@ -441,6 +434,10 @@ def main():
     else:
         model = OrbitMLP(hidden_sizes=HIDDEN).to(DEVICE)
         model = torch.compile(model)
+        optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.5, patience=15, min_lr=1e-6
+        )
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Model parameters: {total_params:,}")
