@@ -1255,3 +1255,8 @@ dkms.conf
 # Raspberry Pi Pico disassembler file
 *.dis
 *.npy
+
+prev_data/
+validation_data*/
+test_data*/
+training_data*/

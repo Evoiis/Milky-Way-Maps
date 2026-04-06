@@ -64,5 +64,9 @@ Stopped early because it started plateauing at 40.
     - no longer a problem because I added load_checkpoint
 
 6:
-- Reducing Input Time space from -3,3 to -1,1
+- training_data_3, Reduced Input Time space from -3,3 to -1,1
+- Epochs=150
+- scheduler changes, min_lr = 1e-6, patience=15
+
+7:
 
