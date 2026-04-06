@@ -6,7 +6,7 @@ Galpy Orbit Integration Performance on a AMD Ryzen 7 7700X 8-Core CPU.
 ## Orbit Integration Benchmark
 
 
-### 2 Million stars vs 2 Thousand stars
+### 2 Million stars vs 200 Thousand stars
 
 5 timesteps.
 
@@ -15,7 +15,7 @@ Time range: 0 to t_end * 5
 Ex. t_end = 0.1, 5 timesteps generated from 0 to 0.5
 
 
-![2M vs 2k 5 Timesteps Benchmark](./orbit_5by5.png)
+![2M vs 200k 5 Timesteps Benchmark](./orbit_5by5.png)
 ***Figure B***
 
 | t_end | Average time_taken (200k) | Average time_taken (2M) |
