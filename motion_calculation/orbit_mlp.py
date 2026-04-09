@@ -592,6 +592,7 @@ def run_training_run(config):
 
 def main():
     torch.set_float32_matmul_precision("high")
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     config = load_config(CONFIG_FILE_PATH)
 
     runs = config.pop("runs")
