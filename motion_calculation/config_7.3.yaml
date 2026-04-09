@@ -21,10 +21,3 @@ runs:
     start_learning_rate: 0.001
     scheduler: plateau # [plateau, cosanneal]
     patience: 15
-    
-  # 2:
-  #   training_data_filter: /orbit_train_part00[!01234]*.npy
-  #   min_learning_rate: 0.000001
-  #   scheduler: plateau # [plateau, cosanneal]
-  #   patience: 15
-

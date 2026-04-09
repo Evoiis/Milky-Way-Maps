@@ -18,9 +18,9 @@ import time
 import math
 import os
 import glob
+import argparse
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-CONFIG_FILE_PATH = "config_7.3.yaml"
 
 # --- Dataset ---
 
@@ -593,7 +593,12 @@ def run_training_run(config):
 def main():
     torch.set_float32_matmul_precision("high")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-    config = load_config(CONFIG_FILE_PATH)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_file")
+    args = parser.parse_args()
+
+    config = load_config(args.config_file)
 
     runs = config.pop("runs")
 
