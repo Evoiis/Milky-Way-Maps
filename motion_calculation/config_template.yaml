@@ -1,6 +1,6 @@
-model_name: orbit_mlp_7.3.pt
+model_name: orbit_mlp_1.1.pt
 
-norm_path: "orbit_nor_6.json"
+norm_path: "orbit_norm_6.json"
 val_data_path: "validation_data_3"
 test_data_path: "test_data_3"
 training_data_path: "training_data_3"
@@ -9,7 +9,7 @@ hidden_layers: [512, 512, 256, 256, 128]
 epochs: 150 # Epochs per run
 batch_size: 100000
 
-use_half_precision: False # [True,False]
+use_half_precision: False # [True,False] loads training data into gpu at half precision, recasts to float on batch usage
 use_dataloader: False # [True,False]
 use_gradient_clipping: True
 
@@ -17,19 +17,28 @@ grad_clip_max_norm: 0.1
 optimizer: adamW # [adam, adamW]
 
 runs:
-  1:
+  1:  # plateau example
     training_data_filter: /orbit_train_part00[01234]*.npy # Can split data with filters
     min_learning_rate: 0.000001
     start_learning_rate: 0.001 # Required for first run
     scheduler: plateau # [plateau, cosanneal]
     patience: 15  # Required for pleteau scheduler
     
-  2:  # Multiple runs
+  2:  # cosanneal example
     training_data_filter: /orbit_train_part00[!01234]*.npy
     min_learning_rate: 0.000001
     start_learning_rate: 0.001
-    scheduler: cosanneal # [plateau, cosanneal]
     override_learning_rate: True # [True, False] resets optimizer LR to start_learning_rate
+    scheduler: cosanneal # [plateau, cosanneal, cosannealwarmrestart]
+  
+  3:  # cosannealwarmrestart example
+    training_data_filter: /orbit_train_*.npy
+    min_learning_rate: 0.000001
+    start_learning_rate: 0.001
+    override_learning_rate: True # [True, False] resets optimizer LR to start_learning_rate
+    scheduler: cosannealwarmrestart # [plateau, cosanneal, cosannealwarmrestart]
+    warm_restart_epochs: 50 # number of epochs in the first cycle before resetting LR
+    warm_restart_cycle_mult: 1 # cycle length multiplier
 
 # Not IMPL:
 # use_residual_model: False

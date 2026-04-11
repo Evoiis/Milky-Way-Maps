@@ -355,6 +355,7 @@ def evaluate_with_full_dataset_on_gpu(model, X, y, loss_fn, batch_size):
 
 def load_model_from_file(model_path: str):
     """Load trained model."""
+    torch.set_float32_matmul_precision("high")
 
     checkpoint = torch.load(model_path, map_location=DEVICE)
 
@@ -495,6 +496,10 @@ def load_model(config):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=config["epochs"], eta_min=config["min_learning_rate"]
         )
+    elif config["scheduler"] == "cosannealwarmrestart":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            optimizer, T_0=config["warm_restart_epochs"], T_mult=config["warm_restart_cycle_mult"], eta_min=config["min_learning_rate"]
+        )
     else:
         raise Exception(f"Unexpected scheduler choice in config: {config["scheduler"]=}")
 
@@ -567,7 +572,7 @@ def run_training_run(config):
 
         if config["scheduler"] == "plateau":
             scheduler.step(val_loss)
-        elif config["scheduler"] == "cosanneal":
+        elif config["scheduler"] in ["cosanneal", "cosannealwarmrestart"]:
             scheduler.step()            
         else:
             raise Exception(f"Unexpected scheduler choice in config: {config["scheduler"]=}")

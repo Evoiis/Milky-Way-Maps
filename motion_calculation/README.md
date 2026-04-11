@@ -182,6 +182,19 @@ Time taken(model_test.py), 2.15
 - 7.5 but cosanneal
 ~10 parsecs error
 
+#### 7.7:
+- data split and learning rate reset
+~18
+
+#### 7.8:
+- 450 epochs
+~ 10 parsecs error
+
+### 7.9:
+- cosanneal warm restart, t0: 50, mult: 2
+- 350 Epochs
+~10.66 parsecs error
+
 #### 14:
 - [1024, 512, 512, 256, 256, 128]
 ~8.1 parsecs error
