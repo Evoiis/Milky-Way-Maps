@@ -38,6 +38,12 @@ def integrate_orbit(orbit: Orbit, time_range):
     return orbit.helioX(time_range), orbit.helioY(time_range), orbit.helioZ(time_range)
 
 def generate_training_set(n_stars, n_timesteps=100):
+    """
+    Output
+    x0, y0, z0, vx0, vy0, vz0, t_col, x_out, y_out, z_out
+    x0,y0,z0: galactocentric
+    x_out, y_out, z_out: heliocentric
+    """
     start = time.time()
     ra               = np.random.uniform(0, 360, n_stars)
     dec              = np.degrees(np.arcsin(np.random.uniform(-1, 1, n_stars)))

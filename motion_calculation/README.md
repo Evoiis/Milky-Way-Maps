@@ -5,6 +5,10 @@ Planned to use galpy orbit integrate directly for motion.
 Also attempting to train an MLP(multi-layer perceptron) to create a speedier alternative.
 
 
+## Orbit MLP
+
+Star Galactocentric data --> Orbit MLP --> Heliocentric displacement --> Heliocentric position
+
 ## Dependencies
 
 Cuda 13.0.0 Install

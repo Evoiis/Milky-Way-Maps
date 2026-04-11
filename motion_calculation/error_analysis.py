@@ -23,11 +23,12 @@ from orbit_mlp import (
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-MODEL_PATH    = "./prev_models/orbit_mlp_14.pt"
-# MODEL_PATH    = "orbit_mlp_14.pt"
+MODEL_NAME = "orbit_mlp_7.8.pt"
+# MODEL_PATH    = "./prev_models/" + MODEL_NAME
+MODEL_PATH    = MODEL_NAME
 NORM_PATH     = "orbit_norm_6.json"
 VAL_DATA_PATH = "validation_data_3"
-OUTPUT_DIR    = "error_analysis_output"
+OUTPUT_DIR    = "error_analysis_output/" + MODEL_NAME
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -133,15 +134,21 @@ def main():
     data = load_val_data(VAL_DATA_PATH)
 
     inputs = data[:, :7].astype(np.float32)   # x0, y0, z0, vx0, vy0, vz0, t
-    y_true = data[:, 7:].astype(np.float32)   # x, y, z positions
+    y_true = data[:, 7:].astype(np.float32)   # heliocentric x, y, z positions
 
     t                = data[:, 6].astype(np.float32)
-    r0               = np.sqrt(data[:, 0]**2 + data[:, 1]**2)
-    displacement_mag = np.sqrt(np.sum((y_true - data[:, :3])**2, axis=1))
+    r0               = np.sqrt(data[:, 0]**2 + data[:, 1]**2) - 8000
+
+    initial_pos_helio = data[:, :3].copy().astype(np.float32)
+    initial_pos_helio[:, 0] -= 8000
+
+    displacement_mag = np.sqrt(np.sum((y_true - initial_pos_helio[:, :3])**2, axis=1))
+
+    print(f"displacement_mag min:  {displacement_mag.min():.1f} pc")
+    print(f"displacement_mag max:  {displacement_mag.max():.1f} pc")
+    print(f"displacement_mag mean: {displacement_mag.mean():.1f} pc")
 
     print("Running inference...")
-    # y_pred = predict_batch(model, norm_stats, inputs)  # (N, 3) positions
-
     y_pred = predict_in_chunks(model, norm_stats, inputs)
 
     errors_xyz = y_pred - y_true
