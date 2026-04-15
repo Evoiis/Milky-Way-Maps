@@ -17,24 +17,30 @@ flogger.set_write_to_file(False)
 config = load_config(CONFIG_FILE)
 
 # --- INPUT -------------------------------------------------
-TEST_DATA_PATH = "./prev_data/test_data_3"
-NORM_PATH = config["norm_path"]
-MODEL_PATH = config["model_name"]
+# OVERRIDE model name
+# config["model_name"] = "./prev_models/orbit_mlp_7.pt"
 
-if not os.path.exists(MODEL_PATH):
-    MODEL_PATH = "./prev_models/" + config["model_name"]
+# TEST_DATA_PATH = "./prev_data/test_data_3"
+TEST_DATA_PATH = "test_data_12"
+NORM_PATH = config["norm_path"]
+
+if not os.path.exists(config["model_name"]):
+    config["model_name"] = "./prev_models/" + config["model_name"]
+
+if not os.path.exists(NORM_PATH):
+    NORM_PATH = "./norms/" + NORM_PATH
 
 # OVERRIDE
 # NORM_PATH = "orbit_norm_6.json"
-# MODEL_PATH = "orbit_mlp_20_300.pt"
 
 # ^^^ INPUT ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-print(f"\nRunning model test on: {MODEL_PATH}")
+print(f"\nRunning model test on: {config['model_name']}")
 print(f"Using norms: {NORM_PATH}\n")
 model = load_model_from_file(config)
 norm_stats = load_norm_stats(NORM_PATH)
 
+print(f"Loading test data from: {TEST_DATA_PATH}")
 test_set = OrbitDataset(TEST_DATA_PATH, norm_stats)
 test_X = test_set.X.to(DEVICE)
 test_y = test_set.y.to(DEVICE)

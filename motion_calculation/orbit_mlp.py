@@ -5,7 +5,7 @@ Predicts heliocentric XYZ position (parsecs) from initial conditions + time
 """
 
 from torch.utils.data import Dataset, DataLoader
-from torch.amp import autocast
+from torch.amp import autocast, GradScaler
 import torch
 import yaml
 import torch.nn as nn
@@ -67,7 +67,7 @@ class OrbitDataset(Dataset):
     Outputs: [x,y,z]
     """
 
-    def __init__(self, folder_path: str, norm_stats, data_file_filter="/orbit_train_*.npy", use_half_precision=False):
+    def __init__(self, folder_path: str, norm_stats, dtype_choice: str="fp32", data_file_filter="/orbit_train_*.npy"):
         files = sorted(glob.glob(folder_path + data_file_filter))
         flogger.info(f"Files loaded: {files}")
         data  = np.concatenate([np.load(f) for f in files], axis=0)
@@ -83,7 +83,11 @@ class OrbitDataset(Dataset):
         y = (y - norm_stats["y_mean"]) / norm_stats["y_std"]
 
         flogger.info("Inputs normalized, loading into torch.")
-        if use_half_precision:
+        print(f"Loading {folder_path} as {dtype_choice=}")
+        if dtype_choice == "fp16":
+            self.X = torch.from_numpy(X).half()
+            self.y = torch.from_numpy(y).half()
+        elif dtype_choice == "bf16":
             self.X = torch.from_numpy(X).to(torch.bfloat16)
             self.y = torch.from_numpy(y).to(torch.bfloat16)
         else:
@@ -336,32 +340,54 @@ class OrbitSiren(nn.Module):
 
 # --- Training ---
 
-def train_with_dataloader(model, loader, optimizer, loss_fn, config) -> float:
+def train_with_dataloader(model, loader, optimizer, loss_fn, scaler, config) -> float:
     model.train()
     total_loss = 0.0
+
+    dtype_map = {
+        "fp32": torch.float32,
+        "fp16": torch.float16,
+        "bf16": torch.bfloat16
+    }
+    target_dtype = dtype_map.get(config.get("data_dtype"), torch.float32)
 
     for X_batch, y_batch in loader:
         X_batch = X_batch.to(DEVICE, non_blocking=True)
         y_batch = y_batch.to(DEVICE, non_blocking=True)
 
         optimizer.zero_grad(set_to_none=True)
-        with autocast(device_type=DEVICE, dtype=torch.bfloat16):
+        with autocast(device_type=DEVICE, dtype=target_dtype):
             predictions = model(X_batch)
             loss = loss_fn(predictions, y_batch)
 
-        loss.backward()
-        if config["use_gradient_clipping"]:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
-        optimizer.step()
+        if target_dtype == torch.float16:
+            scaler.scale(loss).backward()
+            if config["use_gradient_clipping"]:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            if config["use_gradient_clipping"]:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
+            optimizer.step()
 
         total_loss += loss.detach()
     
     return total_loss.item() / len(loader)
 
-def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, config):
+def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, scaler, config):
     model.train()
     total_loss = 0.0
     n_batches = 0
+
+    dtype_map = {
+        "fp32": torch.float32,
+        "fp16": torch.float16,
+        "bf16": torch.bfloat16
+    }
+    target_dtype = dtype_map.get(config.get("data_dtype"), torch.float32)
 
     perm = torch.randperm(len(X), device=DEVICE)
 
@@ -373,14 +399,22 @@ def train_with_full_dataset_on_gpu(model, X, y, optimizer, loss_fn, config):
 
         optimizer.zero_grad(set_to_none=True)
 
-        with autocast(device_type=DEVICE, dtype=torch.bfloat16):
+        with autocast(device_type=DEVICE, dtype=target_dtype):
             predictions = model(X_batch)
-            loss = loss_fn(predictions, y_batch)
+            loss = loss_fn(predictions.float(), y_batch.float())
 
-        loss.backward()
-        if config["use_gradient_clipping"]:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
-        optimizer.step()
+        if target_dtype == torch.float16:
+            scaler.scale(loss).backward()
+            if config["use_gradient_clipping"]:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            if config["use_gradient_clipping"]:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip_max_norm"])
+            optimizer.step()
 
         total_loss += loss.detach()
         n_batches += 1
@@ -551,13 +585,15 @@ def init_model(config, hidden_sizes):
 
     if "model_type" not in config:
         model = OrbitMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
+        return model
 
     if config["model_type"] == "residual":
         model = OrbitResidualMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
     elif config["model_type"] == "fourier":
         model = OrbitFFMLP(hidden_sizes, config).to(DEVICE)
     elif config["model_type"] == "siren":
-        model = OrbitSiren(hidden_sizes).to(DEVICE)
+        omega = config.get("siren_omega", 30)
+        model = OrbitSiren(hidden_sizes, omega).to(DEVICE)
     else:
         model = OrbitMLP(hidden_sizes=hidden_sizes, config=config).to(DEVICE)
     
@@ -624,41 +660,43 @@ def load_model(config):
     return model, scheduler, optimizer, best_val_loss
 
 def run_training_run(config):
+    flogger.info("Loading model...")
+    model, scheduler, optimizer, best_val_loss = load_model(config)
+
     flogger.info("Loading dataset...")
     norm_stats = load_norm_stats(config["norm_path"])
     train_set = OrbitDataset(
         config["training_data_path"],
         norm_stats,
-        config["training_data_filter"],
-        config["use_half_precision"]
+        config["data_dtype"],
+        config["training_data_filter"]
     )
     test_set = OrbitDataset(config["test_data_path"], norm_stats)
     val_set = OrbitDataset(config["val_data_path"], norm_stats)
-
 
     if config["use_dataloader"]:
         train_loader, val_loader, test_loader = load_dataloaders(config, train_set, val_set, test_set)
     else:
         train_X, train_y, val_X, val_y, test_X, test_y = load_data(train_set, val_set, test_set)
-        
 
     if "loss_fn" in config and config["loss_fn"] == "huber":
+        flogger.info("Using huber loss_fn")
         loss_fn = nn.HuberLoss(delta=config["huber_delta"])
     else:
-        loss_fn = nn.MSELoss()
-
-    model, scheduler, optimizer, best_val_loss = load_model(config)
-    
+        flogger.info("Using MSE loss_fn")
+        loss_fn = nn.MSELoss()    
 
     total_params = sum(p.numel() for p in model.parameters())
     flogger.info(f"Model parameters: {total_params:,}")
+
+    scaler = GradScaler(device=DEVICE)
     
     flogger.info("\nStarting training...\n")
     for epoch in range(1, config["epochs"] + 1):
         t0 = time.time()
 
         if config["use_dataloader"]:
-            train_loss = train_with_dataloader(model, train_loader, optimizer, loss_fn, config)
+            train_loss = train_with_dataloader(model, train_loader, optimizer, loss_fn, scaler, config)
             val_loss = evaluate_with_dataloader(model, val_loader, loss_fn)
         else:
             train_loss = train_with_full_dataset_on_gpu(
@@ -667,6 +705,7 @@ def run_training_run(config):
                 train_y,
                 optimizer,
                 loss_fn,
+                scaler,
                 config
             )
             val_loss = evaluate_with_full_dataset_on_gpu(model, val_X, val_y, loss_fn, config["batch_size"])

@@ -12,8 +12,9 @@ import os
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-DATA_SET_NAME = "12"
-DATA_PATH  = "training_data_" + DATA_SET_NAME
+DATA_SET_NAME = "13S"
+# DATA_PATH  = "training_data_" + DATA_SET_NAME
+DATA_PATH = "data/dataset_" + DATA_SET_NAME + "/training_data"
 OUTPUT_DIR = "dataset_analysis_output/distribution_output_" + DATA_SET_NAME
 N_BINS     = 60
 

@@ -9,7 +9,7 @@ hidden_layers: [512, 512, 256, 256, 128]
 epochs: 150 # Epochs per run
 batch_size: 100000
 
-use_half_precision: False # [True,False] loads training data into gpu at half precision, recasts to float on batch usage
+data_dtype: fp16 # [fp16, fp32, bf16] loads training data into gpu with dtype
 use_dataloader: False # [True,False]
 use_gradient_clipping: True
 model_type: plain # [plain, residual, fourier, siren]

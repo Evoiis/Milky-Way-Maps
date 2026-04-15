@@ -22,14 +22,13 @@ from orbit_mlp import (
     flogger
 )
 
+OVERRIDE_MODEL_NAME = None
+
 # ── Config ────────────────────────────────────────────────────────────────────
 
-CONFIG_FILE_PATH = "configs/config_22.yaml"
-# MODEL_NAME = "orbit_mlp_15.pt"
-# # MODEL_PATH    = "./prev_models/" + MODEL_NAME
-# MODEL_PATH    = MODEL_NAME
-# NORM_PATH     = "orbit_norm_data_4.json"
-VAL_DATA_PATH = "./prev_data/validation_data_3"
+CONFIG_FILE_PATH = "configs/config_24.yaml"
+# OVERRIDE_MODEL_NAME = "prev_models/orbit_mlp_7.pt"
+TEST_DATA_PATH = "./prev_data/test_data_3"
 # OUTPUT_DIR    = "error_analysis_output/" + MODEL_NAME
 
 # os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -91,29 +90,25 @@ def plot_per_axis(errors_xyz, filename, output_dir):
     print(f"Saved: {filename}")
 
 
-def plot_xyz_comparison(y_pred, y_true, output_dir, title="XYZ Comparison", n_samples=2000):
-    """
-    y_pred, y_true: (N, 3) numpy arrays in parsecs (heliocentric x, y, z)
-    """
+def plot_xyz_comparison(y_pred, y_true, output_dir, title="XYZ Comparison", n_samples=500):
     idx = np.random.choice(len(y_pred), min(n_samples, len(y_pred)), replace=False)
     p = y_pred[idx]
     t = y_true[idx]
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(title)
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_title(title)
 
-    for i, axis in enumerate(['x', 'y', 'z']):
-        ax = axes[i]
-        lim = max(np.abs(t[:, i]).max(), np.abs(p[:, i]).max())
-        ax.scatter(t[:, i], p[:, i], alpha=0.2, s=3)
-        ax.plot([-lim, lim], [-lim, lim], 'r--', linewidth=1, label='Perfect')
-        ax.set_xlabel(f"True {axis} (pc)")
-        ax.set_ylabel(f"Pred {axis} (pc)")
-        ax.set_title(f"{axis} — RMSE: {np.sqrt(((p[:, i] - t[:, i])**2).mean()):.2f} pc")
-        ax.set_aspect('equal')
+    ax.scatter(t[:, 0], t[:, 1], t[:, 2], c='steelblue', s=6, alpha=0.6, label='True')
+    ax.scatter(p[:, 0], p[:, 1], p[:, 2], c='tomato',    s=6, alpha=0.6, label='Predicted')
+
+    ax.set_xlabel("x (pc)")
+    ax.set_ylabel("y (pc)")
+    ax.set_zlabel("z (pc)")
+    ax.legend()
 
     plt.tight_layout()
-    filename = "xyz_comparison.png"
+    filename = "xyz_comparison_3d.png"
     plt.savefig(os.path.join(output_dir, filename), dpi=150)
     plt.close()
     print(f"Saved: {filename}")
@@ -158,16 +153,22 @@ def main():
 
     config = load_config(CONFIG_FILE_PATH)
 
+    if OVERRIDE_MODEL_NAME:
+        config["model_name"] = OVERRIDE_MODEL_NAME
+
     output_dir = "error_analysis_output/" + config["model_name"]
 
     os.makedirs(output_dir, exist_ok=True)
 
     flogger.set_write_to_file(False)
 
+    if not os.path.exists(config["norm_path"]):
+        config["norm_path"] = "norms/" + config["norm_path"]
+
     norm_stats = load_norm_stats(config["norm_path"])
     model      = load_model_from_file(config)
 
-    data = load_val_data(VAL_DATA_PATH)
+    data = load_val_data(TEST_DATA_PATH)
 
     inputs = data[:, :7].astype(np.float32)   # x0, y0, z0, vx0, vy0, vz0, t
     y_true = data[:, 7:].astype(np.float32)   # heliocentric x, y, z positions

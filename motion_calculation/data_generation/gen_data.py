@@ -107,9 +107,9 @@ def generate_training_set(n_stars, dist_sampling_mode: str, n_timesteps=100):
 
     return np.column_stack([x0, y0, z0, vx0, vy0, vz0, t_col, x_out, y_out, z_out])
 
-def write_data(n_stars, batch_size, data_folder):
+def write_data(n_stars, batch_size, data_folder, distance_sampling_mode):
     if not os.path.exists(data_folder):
-        os.mkdir(data_folder)
+        os.makedirs(data_folder, exist_ok=True)
 
     if len(os.listdir(data_folder)) > 0:
         print(f"Detected files in {data_folder}, not generating data to prevent overwrite.")
@@ -117,19 +117,20 @@ def write_data(n_stars, batch_size, data_folder):
     
     for i in range(math.ceil(n_stars / batch_size)):
         print(f"Generating part {i}")
-        data = generate_training_set(batch_size, "flat")
+        data = generate_training_set(batch_size, distance_sampling_mode)
     
         np.save(f"{data_folder}/orbit_train_part{i:04d}.npy", data)
 
 def main():
-    data_set_name = "12"
+    data_set_name = "13S"
     n_stars = 1000000
     batch_size = 10000
+    distance_sampling_mode = "flat"
 
     data_folder = "data/dataset_" + data_set_name + "/"
-    write_data(n_stars, batch_size,     data_folder + "training_data")
-    write_data(n_stars//10, batch_size, data_folder + "validation_data")
-    write_data(n_stars//10, batch_size, data_folder + "test_data")
+    write_data(n_stars, batch_size,     data_folder + "training_data", distance_sampling_mode)
+    write_data(n_stars//10, batch_size, data_folder + "validation_data", distance_sampling_mode)
+    write_data(n_stars//10, batch_size, data_folder + "test_data", distance_sampling_mode)
     
 
 if __name__ == "__main__":

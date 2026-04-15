@@ -1,0 +1,36 @@
+model_name: orbit_mlp_27.pt
+
+norm_path: "orbit_norm_data_12.json"
+val_data_path: "validation_data_12"
+test_data_path: "test_data_12"
+training_data_path: "training_data_12"
+
+hidden_layers: [512, 512, 256, 256, 128]
+epochs: 150
+batch_size: 102400
+
+use_half_precision: True
+use_dataloader: False
+use_gradient_clipping: False
+
+model_type: "siren"
+
+grad_clip_max_norm: 0.1
+optimizer: adam # [adam, adamW]
+
+runs:
+  1:
+    training_data_filter: /orbit_train_*.npy
+    min_learning_rate: 0.000001
+    start_learning_rate: 0.0001
+    scheduler: plateau
+    patience: 15
+  2:
+    training_data_filter: /orbit_train_*.npy
+    min_learning_rate: 0.000001
+    start_learning_rate: 0.0001
+    override_learning_rate: True
+    scheduler: plateau
+    patience: 15
+    loss_fn: huber
+    huber_delta: 0.1
