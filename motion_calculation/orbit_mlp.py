@@ -18,6 +18,7 @@ import json
 import time
 import math
 import os
+import shutil
 import glob
 import argparse
 
@@ -785,7 +786,9 @@ def main():
     run_list = list(runs.keys())
     run_list.sort()
     for run in run_list:
-        flogger.info(f"Starting run: {run}")        
+        if config["model_name"] in os.listdir("."):
+            shutil.copyfile(config["model_name"], "r" + str(run - 1) + "_" + config["model_name"])
+        flogger.info(f"Starting run: {run}")
         run_training_run(config | runs[run])
 
 if __name__ == "__main__":

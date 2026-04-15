@@ -271,8 +271,30 @@ popped at the start due to high learning rate
 - Plain MLP, similar to iteration 20
 - using bfloat16
 
+- After 150 epochs:
+    - 22.869 parsecs test error
+    - val_loss: ~4e-6
+
+- After 300 epochs:
+    - 17.2679 parsecs test error
+    - val_loss: ~2.46e-6
+
+- After 450 epochs:
+    - 16.794 parsecs test error:
+    - val_loss: ~1.11e-6
+
+- After 600 epochs:
+    - 16.3289 parsecs test error:
+    - val_loss: ~1.21e-6
+
 #### 30.1:
 - using fp16
+
+- After 150 epochs: 
+    - 16.8988 parsecs test error
+    - val_loss: ~2.56e-6
+
+- Looks like bf16 is having a detrimental effect on training...
 
 #### 31: (training_data_13S)
 - 13S data, 100k stars instead of 1M
