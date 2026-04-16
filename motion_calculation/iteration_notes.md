@@ -462,52 +462,87 @@ Notes:
 - 
 
 Results:
-- New record of 5.21628 parsecs
+- 34.1: New record of 5.21628 parsecs
+- 34.3: New best: 3.8822902410905074 parsecs test error
+    - Under 5 on other test sets
+    - Broken the 5 wall now
+
+- Wider hidden layers is better than taller
+
 - Batch size of 4096 = slower epochs but loss drops faster
-    - Can reduce plateau scheduler patience and epochs with 4096
+    - Can reduce plateau scheduler patience and epochs
         - Or use cosanneal or multistep scheduler
-- 
+- Grad Clip doesn't really have a noticeable effect
+
+- 100k star dataset is definitely insufficient
+- 300k star dataset performed slightly better than iteration 33 runs
+    - Should try it again with batch size 4096
 
 #### 34.0: (training_data_13S)
 - Based on 33.1, 
 - Use 100k star dataset
 - Batch size 8192
 
+Result:
 - 10.267 parsecs test error
 
 #### 34.1: (training_data_14_20p)
 - Based on 33.1
 - Batch size 4096
 
+Result:
 - 5.21628 parsecs test error 
-    - NEW RECORD!!!
-        - Best to run it through model_test.py next
+
 - End LR = 7.81e-6, might be a little bit more to squeeze out here
-    - Lower patience in scheduler coudl help
+    - Lower patience in scheduler could help
+
+- Solidly below 6 parsecs test error
+- (test_data_12) 5.691 parsecs test error
 
 #### 34.2: (training_data_14_20p)
 - 34.1, with Grad Clip ON
 - Batch size 4096
+
+Result:
+- 5.7671106036248565 parsecs test error
 
 #### 34.3: (training_data_14_20p)
 - Hidden layers: [256, 256, 256, 256, 256, 256, 256, 256, 256]
     - Wider but similar amount of parameters as my current default: [512, 512, 256, 256, 128]
 - Batch size 4096
 
+Results:
+- 3.8822902410905074 parsecs test error
+
+- (test_data_12) 4.532992908145617 parsecs test error
+
 #### 34.4: (training_data_14_20p)
 - [1024, 512]
     - Taller but similar amount of parameters as my current default: [512, 512, 256, 256, 128]
 - Batch size 4096
+
+Results:
+- 65.96987720272108 parsecs test error
+- After another 400 epochs:
+    - 57.924807611753636 parsecs test error
 
 #### 34.5: (training_data_14_20p)
 - [1024, 1024]
     - Tall!
 - Batch size 4096
 
+Results:
+- 58.2467821125526 parsecs test error
+- After an additional 132 epochs:
+    - ~55.35
+
 #### 34.6: (training_data_14_20p)
 - [128, 256, 512, 512, 256, 128]
     - Grow then Shrink
 - Batch size 4096
+
+- Results:
+- 6.304318168745151 parsecs test error
 
 #### 34.7: (training_data_15_300k)
 - Training with 300k star dataset
@@ -515,16 +550,24 @@ Results:
 - Default hidden layer
 - Batch size 8192
 
+Results:
+- 6.361389125110813 parsecs test error
+
 Iteration 35. MLflow Integration
 ---
 https://mlflow.org/docs/latest/ml/deep-learning/pytorch/index.html
 - Integrate mlflow to track metrics during training
 
 
+Iteration X. Optune/Ray Tune Integration
+---
+Try hyperparameter tuning with a framework
 
 Future Iterations:
 - Residual NN
 - Without time fourier features
 - Explore different activation functions
     - GELU, snake
-
+- Variations with diff Scheduler setup
+- Different learning rate bounds
+- Different loss function?

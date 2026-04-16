@@ -26,15 +26,15 @@ OVERRIDE_MODEL_NAME = None
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-CONFIG_FILE_PATH = "configs/config_24.yaml"
+CONFIG_FILE_PATH = "configs/config_34.3.yaml"
 # OVERRIDE_MODEL_NAME = "prev_models/orbit_mlp_7.pt"
 
 test_data_folders = [
-    "prev_data/test_data_3",
+    # "prev_data/test_data_3",
     "test_data_12",
-    "data/dataset_13S/test_data",
-    "data/dataset_14_20p/test_data",
-    "data/dataset_15_300k/test_data",
+    # "data/dataset_13S/test_data",
+    # "data/dataset_14_20p/test_data",
+    # "data/dataset_15_300k/test_data",
 ]
 
 # ── Load val data ─────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ def main():
     if not os.path.exists(config["norm_path"]):
         config["norm_path"] = "norms/" + config["norm_path"]
 
-    norm_stats = load_norm_stats(config["norm_path"])
+    norm_stats = load_norm_stats(config)
     model = load_model_from_file(config)
 
 
