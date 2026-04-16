@@ -395,7 +395,17 @@ Iteration 33. Training with 200k stars dataset
     - Explore variations with 200k star datset
 
 Results:
-- batch size 
+- got to the ~7 parsecs error mark with batch size 8192
+- batch size is having a much larger affect with the smaller dataset
+- 600 epochs is overkill
+    - 33.1 stopped improving around 380 epochs
+- for obvious reasons, ramping up the dataset from small to large is much better
+    - 1 million stars feels like overkill now
+    - However, it was good to learn about fp16/bf16, autocasting and a bit of memory management.
+
+- grad clipping helping a bit
+- Larger model (33.4) did a bit better
+- Doesn't really seem like much point to shrink hidden layers
 #### 33.0: (training_data_14_20p)
 - 200k stars in training data
 - fp32
@@ -409,7 +419,9 @@ Results:
 #### 33.1:
 - batch_size 8192
 
-- 7.43605633162477 parsecs
+- 7.43605633162477 parsecs test error
+- Error decrease went flat around 380 epochs
+    - Last 2 LR halves didn't really change much
 
 #### 33.2: (training_data_14_20p)
 - batch_size 102400
@@ -433,3 +445,83 @@ Results:
 - hidden_layers: [512, 256, 128]
 
 - 92.6142620665024 parsecs test error
+
+
+Iteration 34. Hidden layers and datasets.
+---
+- 34.X Configs won't necessary be related to each other in this iteration
+- Reduce epochs to 400
+
+Main Purpose:
+- Build on results from 32/33 and explore cases to improve performance
+    - Compare results with 100k and 300k star datasets
+    - Explore hidden layer layouts
+
+Notes:
+- Doing a cosanneal run with batch size 4096
+- 
+
+Results:
+- New record of 5.21628 parsecs
+- Batch size of 4096 = slower epochs but loss drops faster
+    - Can reduce plateau scheduler patience and epochs with 4096
+        - Or use cosanneal or multistep scheduler
+    - Trade off with precision? I should try a longer epoch with high batch size
+- 
+
+#### 34.0: (training_data_13S)
+- Based on 33.1, 
+- Use 100k star dataset
+- Batch size 8192
+
+- 10.267 parsecs test error
+
+#### 34.1: (training_data_14_20p)
+- Based on 33.1
+- Batch size 4096
+
+- 5.21628 parsecs test error 
+    - NEW RECORD!!!
+        - Best to run it through model_test.py next
+- End LR = 7.81e-6, might be a little bit more to squeeze out here
+    - Lower patience in scheduler coudl help
+
+#### 34.2: (training_data_14_20p)
+- 34.1, with Grad Clip ON
+- Batch size 4096
+
+#### 34.3: (training_data_14_20p)
+- Hidden layers: [256, 256, 256, 256, 256, 256, 256, 256, 256]
+    - Wider but similar amount of parameters as my current default: [512, 512, 256, 256, 128]
+- Batch size 4096
+
+#### 34.4: (training_data_14_20p)
+- [1024, 512]
+    - Taller but similar amount of parameters as my current default: [512, 512, 256, 256, 128]
+- Batch size 4096
+
+#### 34.5: (training_data_14_20p)
+- [1024, 1024]
+    - Tall!
+- Batch size 4096
+
+#### 34.6: (training_data_14_20p)
+- [128, 256, 512, 512, 256, 128]
+    - Grow then Shrink
+- Batch size 4096
+
+#### 34.7: (training_data_15_300k)
+- Training with 300k star dataset
+    - I swear this is the dataset naming scheme I'll stick with
+- Default hidden layer
+- Batch size 8192
+
+
+
+
+Future Iterations:
+- Residual NN
+- Without time fourier features
+- Explore different activation functions
+    - GELU, snake
+

@@ -122,8 +122,8 @@ def write_data(n_stars, batch_size, data_folder, distance_sampling_mode):
         np.save(f"{data_folder}/orbit_train_part{i:04d}.npy", data)
 
 def main():
-    N_STAR_PERCENT = 20 / 100
-    data_set_name = "14_20p"
+    N_STAR_PERCENT = 30 / 100
+    data_set_name = "15_300k"
     n_stars = 1000000 * N_STAR_PERCENT
     batch_size = 10000
     distance_sampling_mode = "flat"
