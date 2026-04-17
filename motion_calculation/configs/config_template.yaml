@@ -56,6 +56,6 @@ runs:
     start_learning_rate: 0.001
     scheduler: multistep # [plateau, cosanneal, cosannealwarmrestart, step, multistep]
     # multistep_scheduler required parameters:
-    scheduler_milstones: [55, 80, 100, 120, 140, 160, 180] # epochs to decay learning rate
+    scheduler_milestones: [55, 80, 100, 120, 140, 160, 180] # epochs to decay learning rate
     scheduler_multiplier: 0.5 # factor to decay learning rate by
 

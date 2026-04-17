@@ -6,14 +6,16 @@ Predicts heliocentric XYZ position (parsecs) from initial conditions + time
 
 from torch.utils.data import Dataset, DataLoader
 from torch.amp import autocast, GradScaler
+import numpy as np
 import torch
 import yaml
 import torch.nn as nn
 import mlflow
+from optuna.trial import TrialState
+import optuna
 
 from pprint import pformat
 from file_logger import FileLogger
-import numpy as np
 import json
 import time
 import math
@@ -50,7 +52,7 @@ def add_features(X, t):
     """
     Adds r0 and time fourier features
     """
-    r0 = np.sqrt(X[:, 0]**2 + X[:, 1]**2) # r0 = x0^2 + y0^2
+    r0 = np.sqrt(X[:, 0]**2 + X[:, 1]**2) # r0 = sqrt(x0^2 + y0^2)
     fourier = calc_time_fourier_features(t)
 
     X = np.concatenate([X, r0[:, None], fourier], axis=1)
@@ -206,7 +208,6 @@ class ResBlock(nn.Module):
             nn.SiLU(),
             nn.LayerNorm(out_size),
             nn.Linear(out_size, out_size),
-            nn.SiLU(),
         )
         # Only project if dimensions differ
         self.proj = nn.Linear(in_size, out_size, bias=False) if in_size != out_size else nn.Identity()
@@ -652,7 +653,7 @@ def load_model(config):
     
     return model, scheduler, optimizer, best_val_loss
 
-def run_training_run(config):
+def run_training_run(config, trial: optuna.trial.Trial = None):
     flogger.info("Loading model...")
     model, scheduler, optimizer, best_val_loss = load_model(config)
 
@@ -709,7 +710,7 @@ def run_training_run(config):
 
         if config["scheduler"] == "plateau":
             scheduler.step(val_loss)
-        elif config["scheduler"] in ["cosanneal", "cosannealwarmrestart"]:
+        elif config["scheduler"] in ["cosanneal", "cosannealwarmrestart", "multistep", "step"]:
             scheduler.step()            
         else:
             raise Exception(f"Unexpected scheduler choice in config: {config["scheduler"]=}")
@@ -756,6 +757,11 @@ def run_training_run(config):
                 "norm_path": config["norm_path"],
                 "best_val_loss": best_val_loss
             }, config["model_name"])
+        
+        if trial is not None:
+            trial.report(val_loss, epoch)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
 
     mlflow.pytorch.log_model(model, name=config["model_name"].replace(".","_"))
     # --- final test evaluation ---
@@ -772,8 +778,10 @@ def run_training_run(config):
         test_pc = loss_to_parsecs(test_loss, norm_stats)
 
     flogger.info(f"{test_pc} parsecs test error")
+    return test_pc
 
-def main():
+def initialize():
+
     torch.set_float32_matmul_precision("high")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     mlflow.set_tracking_uri('http://localhost:5000')
@@ -793,14 +801,17 @@ def main():
         f"Loaded config: {pformat(config)}"
     )
 
-    runs = config.pop("runs")
-    run_list = list(runs.keys())
-    run_list.sort()
-
     if experiment := mlflow.get_experiment_by_name(config["model_name"]):
         exp_id = experiment.experiment_id
     else:
         exp_id = mlflow.create_experiment(config["model_name"])
+    
+    return config, exp_id
+
+def manual_training(config, exp_id):
+    runs = config.pop("runs")
+    run_list = list(runs.keys())
+    run_list.sort()
 
     for run in run_list:
         if config["model_name"] in os.listdir("."):
@@ -811,5 +822,92 @@ def main():
             mlflow.log_params(run_config)
             run_training_run(run_config)
 
+def objective(trial: optuna.trial.Trial, config, exp_id):
+    data_set_name = trial.suggest_categorical("dataset_name", ["14_20p", "15_300k"])
+    config["val_data_path"] = f"data/dataset_{data_set_name}/validation_data"
+    config["test_data_path"] = f"data/dataset_{data_set_name}/test_data"
+    config["training_data_path"] = f"data/dataset_{data_set_name}/training_data"
+    config["norm_path"] = f"norms/orbit_norm_data_{data_set_name}.json"
+
+    config["hidden_layers"] = []
+    n_layers = trial.suggest_int("n_layers", 4, 9)
+    for i in range(n_layers):
+        config["hidden_layers"].append(
+            trial.suggest_int(f"hlayer{i}_width", 64, 1024, step=64)
+        )
+    
+    config["epochs"] = trial.suggest_int("n_epochs", 50, 1000)
+    config["batch_size"] = trial.suggest_int("batch_size", 1024, 61440, step=1024)
+
+    config["scheduler"] = trial.suggest_categorical(
+        "scheduler",
+        ["plateau", "cosanneal", "cosannealwarmrestart", "step", "multistep"]
+    )
+    if config["scheduler"] == "plateau":
+        config["patience"] = trial.suggest_int("plateau_patience", 1, 25)
+    elif config["scheduler"] == "cosannealwarmrestart":
+        config["warm_restart_epochs"] = trial.suggest_int("warm_restart_epochs", 20, 100)
+        config["warm_restart_cycle_mult"] = trial.suggest_int("warm_restart_cycle_mult", 1, 5)
+    elif config["scheduler"] == "step":
+        config["scheduler_step_size"] = trial.suggest_int("scheduler_step_size", 20, 100)
+        config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
+    elif config["scheduler"] == "multistep":
+        config["scheduler_milestones"] = []
+        n_milestones = trial.suggest_int("n_milestones", 3, 10)
+        prev_milestone = 0
+        for i in range(n_milestones):
+            prev_milestone = trial.suggest_int(f"multistep_milestone{i}", prev_milestone + 5, min(prev_milestone + 100, config["epochs"]))
+            config["scheduler_milestones"].append(prev_milestone)
+        config["scheduler_multiplier"] = trial.suggest_float("scheduler_multiplier", 0.1, 0.7)
+
+    config["min_learning_rate"] = trial.suggest_float("min_learning_rate", 1e-8, 1e-5, log=True)
+    config["start_learning_rate"] = trial.suggest_float("start_learning_rate", 1e-5, 2e-3, log=True)
+    
+
+    flogger.info(f"Running optuna trial: {trial.number}")
+    flogger.info(f"With config: {pformat(config)}")
+
+    # Run Trial
+    config["model_name"] += f"_trial{trial.number}"
+    with mlflow.start_run(run_name=config["model_name"], experiment_id=exp_id):
+        mlflow.log_params(config)
+        result = run_training_run(config, trial)
+    
+    return result
+
+def optuna_training(config, exp_id):
+    study = optuna.create_study(
+        direction="minimize",
+        storage="sqlite:///orbit_study_storage.db",
+        study_name=config["study_name"],
+        load_if_exists=True
+    )
+    study.optimize(lambda trial: objective(trial, config, exp_id), n_trials=config["n_trials"], timeout=None)
+
+    pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
+    complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+
+    flogger.info("Study statistics: ")
+    flogger.info("  Number of finished trials: ", len(study.trials))
+    flogger.info("  Number of pruned trials: ", len(pruned_trials))
+    flogger.info("  Number of complete trials: ", len(complete_trials))
+
+    flogger.info("Best trial:")
+    trial = study.best_trial
+
+    flogger.info("  Value: ", trial.value)
+
+    flogger.info("  Params: ")
+    for key, value in trial.params.items():
+        flogger.info("    {}: {}".format(key, value))
+
+def main():
+    config, exp_id = initialize()
+    
+    if config.get("use_optuna", False):
+        optuna_training(config, exp_id)
+    else:
+        manual_training(config, exp_id)
+    
 if __name__ == "__main__":
     main()
