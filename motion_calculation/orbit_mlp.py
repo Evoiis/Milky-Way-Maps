@@ -487,6 +487,7 @@ def predict_batch(model, norm_stats: dict, inputs: np.ndarray) -> np.ndarray:
 
     Args:
         inputs: (N, 7)
+            - x0, y0, z0, vx0, vy0, vz0, t
 
     Returns:
         (N, 3) array of [x, y, z] in parsecs

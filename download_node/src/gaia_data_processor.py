@@ -5,6 +5,8 @@ import logging
 
 import star_data_pb2
 
+from astropy.coordinates import SkyCoord
+from astropy import units
 
 class GaiaDataProcessor():
 
@@ -18,6 +20,7 @@ class GaiaDataProcessor():
     def process_data(self, df: pd.DataFrame):
         self.logger.info("Processing Gaia Data")
         self._calculate_cartesian_coordinates(df)
+        # self._calculate_galactic_coordinates(df)
         self._calculate_rgb_color(df)
         self._calculate_star_brightness(df)
         self._calculate_star_size(df)
@@ -50,6 +53,9 @@ class GaiaDataProcessor():
         df["star_name"] = df["original_ext_source_id"].map(self.hip_to_name).fillna("")
 
     def _calculate_cartesian_coordinates(self, df: pd.DataFrame):
+        """
+            Calculates ICRS coordinates
+        """
         df["ra_rad"] = np.deg2rad(df["ra"].values)
         df["dec_rad"] = np.deg2rad(df["dec"].values)
 
@@ -58,6 +64,20 @@ class GaiaDataProcessor():
         df["pos_x"] = parsecs * np.cos(df["dec_rad"]) * np.cos(df["ra_rad"])
         df["pos_y"] = parsecs * np.cos(df["dec_rad"]) * np.sin(df["ra_rad"])
         df["pos_z"] = parsecs * np.sin(df["dec_rad"])
+    
+    def _calculate_galactic_coordinates(self, df: pd.DataFrame):
+        """
+            Galactic Cartesian
+        """
+        coords = SkyCoord(
+            ra=df["ra"].values * units.deg,
+            dec=df["dec"].values * units.deg,
+            distance=(1000/df["parallax"].values) * units.pc
+        ).galactic
+
+        df["pos_x"] = coords.cartesian.x.value
+        df["pos_y"] = coords.cartesian.y.value
+        df["pos_z"] = coords.cartesian.z.value
 
     def _calculate_rgb_color(self, df: pd.DataFrame):
         # bp_rp -> color
